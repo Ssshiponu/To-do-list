@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Todo App</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app" class="container mx-auto p-6 max-w-lg font-sans">
+        <div class="bg-white rounded-xl shadow-lg p-6 transition-all duration-200">
+            <!-- Header Section -->
+            <div class="mb-8 text-center">
+                <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent tracking-wide">
+                    Todo List
+                </h1>
+                <p class="text-gray-500 mt-2 text-sm">Stay organized and productive</p>
+            </div>
+
+            <!-- Improved Responsive Input Section -->
+            <div class="mb-6 flex flex-col md:flex-row gap-3">
+                <input 
+                    v-model="newItem"
+                    @keyup.enter="addItem"
+                    type="text"
+                    placeholder="What needs to be done?"
+                    class="w-full px-4 py-3 md:py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent placeholder-gray-400 transition-all text-base md:text-lg"
+                >
+                <button 
+                    @click="addItem"
+                    class="w-full md:w-auto bg-gradient-to-br from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span class="hidden md:inline">Add</span>
+                </button>
+            </div>
+
+            <!-- Todo List -->
+            <ul class="space-y-3">
+                <li 
+                    v-for="(item, index) in items" 
+                    :key="item.id"
+                    class="group flex items-center justify-between px-4 py-3 bg-white border border-gray-100 rounded-lg hover:shadow-md transition-all duration-200"
+                >
+                    <div class="flex items-center gap-3 flex-1">
+                        <div 
+                            @click="toggleDone(index)"
+                            class="w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-colors"
+                            :class="item.done ? 'border-green-500 bg-green-500' : 'border-gray-300 hover:border-blue-500'"
+                        >
+                            <svg v-if="item.done" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </div>
+                        <span 
+                            class="text-gray-700 text-lg flex-1 transition-all"
+                            :class="{'line-through text-gray-400': item.done}"
+                        >
+                            {{ item.text }}
+                        </span>
+                    </div>
+                    <button 
+                        @click="removeItem(index)"
+                        class="text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Empty State -->
+            <div v-if="items.length === 0" class="text-center py-8">
+                <div class="text-gray-400 mb-4">
+                    <svg class="w-16 h-16 mx-auto opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+                <p class="text-gray-500">No tasks found. Add your first task!</p>
+            </div>
+
+            <!-- Stats and Actions -->
+            <div class="mt-6 pt-4 border-t border-gray-100">
+                <div class="flex justify-between items-center text-sm text-gray-500 mb-4">
+                    <div>Total: {{ items.length }}</div>
+                    <div>Completed: {{ completedCount }} ({{ completionPercentage }}%)</div>
+                </div>
+                <div class="relative pt-1">
+                    <div class="flex mb-2 items-center justify-between">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                                class="bg-blue-500 h-2 rounded-full transition-all duration-500" 
+                                :style="{ width: completionPercentage + '%' }"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+                <button 
+                    @click="clearAll"
+                    class="w-full mt-4 bg-gradient-to-br from-red-500 to-red-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transition-all"
+                    v-if="items.length > 0"
+                >
+                    Clear All Tasks
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    newItem: '',
+                    items: [],
+                    nextId: 1
+                }
+            },
+            computed: {
+                completedCount() {
+                    return this.items.filter(item => item.done).length
+                },
+                completionPercentage() {
+                    return this.items.length > 0 
+                        ? Math.round((this.completedCount / this.items.length) * 100)
+                        : 0
+                }
+            },
+            methods: {
+                addItem() {
+                    if (this.newItem.trim()) {
+                        this.items.push({
+                            id: this.nextId++,
+                            text: this.newItem.trim(),
+                            done: false
+                        })
+                        this.newItem = ''
+                    }
+                },
+                removeItem(index) {
+                    this.items.splice(index, 1)
+                },
+                toggleDone(index) {
+                    this.items[index].done = !this.items[index].done
+                },
+                clearAll() {
+                    this.items = []
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
